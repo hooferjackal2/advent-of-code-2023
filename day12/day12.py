@@ -1,6 +1,6 @@
 import re
 import math
-k = 1
+k = 5
 
 def num_sols(row, nums):
     if len(row) < sum(nums)+len(nums)-1: return 0
@@ -51,10 +51,20 @@ def type_b(row, nums, saved):
         return saved[(row, str(nums))]
     block = match_hashes.search(row)
     combs = 0
+    # border case - first num is n long and takes up the whole thing
+    if len(row) == nums[0] and len(nums) == 1:
+        return 1
+    # border case - first num is n long and nth char is filled so can't start at 0
+    if row[nums[0]] == '#':
+        if row[0] == '#': return 0
+        else: return solve(row[1:], nums, saved)
+    # border case - first num is n long and forced to the start
+    if row[0] == '#':
+        return solve(row[nums[0]+1:], nums[1:], saved)
     for i, num in enumerate(nums):
         if num >= block.end() - block.start():
             for j in range(max(0,block.end()-num), min(block.start()+1,len(row)-num+1)):
-                if j+num < len(row) and row[j+num] == 0: continue
+                if j+num < len(row) and row[j+num] == '#': continue # violates blank edges policy
                 combs += solve(row[:max(j-1,0)], nums[:i], saved) * solve(row[j+num+1:], nums[i+1:], saved)
         else: continue
     saved[(row, str(nums))] = combs
@@ -77,7 +87,9 @@ def type_b(row, nums, saved):
 def type_c(row, nums, saved):
     if len(row) < sum(nums)+len(nums)-1: return 0 # not enough space
     groups = re.split('\.+', ''.join(row), 1)
-    combs = solve(groups[1], nums, saved) # default - don't add anything to bucket 1
+    combs = 0
+    if '#' not in groups[0]:
+        combs = solve(groups[1], nums, saved) # default - don't add anything to bucket 1
     #print("combs is now", combs, "row=", row, "nums=", nums, "groups=", groups)
     first_nums = []
     for i, num in enumerate(nums):
@@ -105,20 +117,22 @@ def part2(filename):
     problems = [(((line[0]+'?')*k)[:-1], list(map(int, line[1].split(',')))*k) for line in lines]
     #print([(''.join(row), nums) for row, nums in problems])
     #rowx, numsx = problems[1]
-    rowx, numsx = ('??#?????#??#', [1, 1, 7])
-    saved = {}
-    count = solve(rowx, numsx, saved)
-    incorrect = 0
+    #rowx, numsx = ('??#?????#??#', [1, 1, 7])
+    #saved = {}
+    #count = solve(rowx, numsx, saved)
+    #incorrect = 0
+    count = 0
     for i, problem in enumerate(problems):
         rowsy, numsy = problem
         saved = {}
         guess = solve(rowsy, numsy, saved)
-        correct = num_sols(list(rowsy), numsy)
-        if guess != correct:
-            incorrect += 1
-            print(f"On problem {i}: {problem}, guessed {guess}, correct was {correct}")
-    print(f"{incorrect} problems incorrect!")
-    #return count
+        count += guess
+        #correct = num_sols(list(rowsy), numsy)
+        #if guess != correct:
+        #    incorrect += 1
+        #    print(f"On problem {i}: {problem}, guessed {guess}, correct was {correct}")
+    #print(f"{incorrect} problems incorrect!")
+    return count
     #print(list_sols(list(rowx), numsx))
     #return num_sols(list(rowx), numsx)
     #return sum([num_sols(row, nums) for row, nums in problems])
